@@ -11,7 +11,7 @@ app:
     base-url: ${APP_AI_BASE_URL:http://localhost:8000}
     predict-path: ${APP_AI_PREDICT_PATH:/predict}
     timeout-seconds: ${APP_AI_TIMEOUT_SECONDS:5}
-    fallback-category: ${APP_AI_FALLBACK_CATEGORY:Other}
+    fallback-category: ${APP_AI_FALLBACK_CATEGORY:Miscellaneous}
     top-predictions-limit: ${APP_AI_TOP_PREDICTIONS_LIMIT:3}
 
 management:

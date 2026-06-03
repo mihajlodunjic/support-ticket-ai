@@ -47,7 +47,7 @@ public class AppProperties {
         private int timeoutSeconds = 5;
 
         @NotBlank
-        private String fallbackCategory = "Other";
+        private String fallbackCategory = "Miscellaneous";
 
         @Min(1)
         private int topPredictionsLimit = 3;
