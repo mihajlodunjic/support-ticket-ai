@@ -1,0 +1,21 @@
+/backend/**/HELP.md
+/backend/**/target/
+!/backend/**/src/main/**/target/
+!/backend/**/src/test/**/target/
+/backend/*/.mvn/wrapper/maven-wrapper.jar
+
+### STS ###
+/backend/**/.apt_generated
+/backend/**/.classpath
+/backend/**/.factorypath
+/backend/**/.project
+/backend/**/.settings
+/backend/**/.springBeans
+/backend/**/.sts4-cache
+
+
+### VS Code ###
+.vscode
+spec_inteligentni.docx
+spec_inteligentni.pdf
+/docs
