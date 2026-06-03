@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/statistics")
+@RequestMapping("/api/admin/statistics")
 public class StatisticsController {
 
     private final StatisticsService statisticsService;

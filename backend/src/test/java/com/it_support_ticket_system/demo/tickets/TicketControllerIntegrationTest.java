@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,6 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@WithMockUser(roles = "ADMIN")
 class TicketControllerIntegrationTest {
 
     @Autowired
@@ -148,7 +150,7 @@ class TicketControllerIntegrationTest {
     void listTicketsReturnsCreatedTickets() throws Exception {
         createSampleTicket();
 
-        mockMvc.perform(get("/api/tickets"))
+        mockMvc.perform(get("/api/admin/tickets"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
             .andExpect(jsonPath("$.content[0].title").value("Printer issue"))
@@ -173,7 +175,7 @@ class TicketControllerIntegrationTest {
             false
         );
 
-        mockMvc.perform(get("/api/tickets").param("page", "0").param("size", "1"))
+        mockMvc.perform(get("/api/admin/tickets").param("page", "0").param("size", "1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
             .andExpect(jsonPath("$.content[0].id").value(newerTicketId))
@@ -214,7 +216,7 @@ class TicketControllerIntegrationTest {
             false
         );
 
-        mockMvc.perform(get("/api/tickets").param("status", "RESOLVED"))
+        mockMvc.perform(get("/api/admin/tickets").param("status", "RESOLVED"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
             .andExpect(jsonPath("$.content[0].status").value("RESOLVED"))
@@ -248,7 +250,7 @@ class TicketControllerIntegrationTest {
             false
         );
 
-        mockMvc.perform(get("/api/tickets").param("priority", "HIGH"))
+        mockMvc.perform(get("/api/admin/tickets").param("priority", "HIGH"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
             .andExpect(jsonPath("$.content[0].priority").value("HIGH"))
@@ -282,7 +284,7 @@ class TicketControllerIntegrationTest {
             false
         );
 
-        mockMvc.perform(get("/api/tickets").param("predictedCategory", "access"))
+        mockMvc.perform(get("/api/admin/tickets").param("predictedCategory", "access"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
             .andExpect(jsonPath("$.content[0].predictedCategory").value("Access"))
@@ -316,7 +318,7 @@ class TicketControllerIntegrationTest {
             false
         );
 
-        mockMvc.perform(get("/api/tickets").param("finalCategory", "administrative rights"))
+        mockMvc.perform(get("/api/admin/tickets").param("finalCategory", "administrative rights"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
             .andExpect(jsonPath("$.content[0].finalCategory").value("Administrative rights"))
@@ -350,7 +352,7 @@ class TicketControllerIntegrationTest {
             false
         );
 
-        mockMvc.perform(get("/api/tickets").param("userEmail", "access.team"))
+        mockMvc.perform(get("/api/admin/tickets").param("userEmail", "access.team"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
             .andExpect(jsonPath("$.content[0].userEmail").value("access.team@example.com"))
@@ -384,7 +386,7 @@ class TicketControllerIntegrationTest {
             false
         );
 
-        mockMvc.perform(get("/api/tickets").param("minConfidence", "0.8").param("maxConfidence", "1.0"))
+        mockMvc.perform(get("/api/admin/tickets").param("minConfidence", "0.8").param("maxConfidence", "1.0"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
             .andExpect(jsonPath("$.content[0].confidence").value(0.91))
@@ -421,7 +423,7 @@ class TicketControllerIntegrationTest {
         );
         Instant newerCreatedAt = ticketRepository.findById(newerTicketId).orElseThrow().getCreatedAt();
 
-        mockMvc.perform(get("/api/tickets")
+        mockMvc.perform(get("/api/admin/tickets")
                 .param("createdFrom", newerCreatedAt.minusMillis(1).toString())
                 .param("createdTo", newerCreatedAt.plusMillis(1).toString()))
             .andExpect(status().isOk())
@@ -436,7 +438,7 @@ class TicketControllerIntegrationTest {
     void getTicketByIdReturnsTicket() throws Exception {
         Long ticketId = createSampleTicket();
 
-        mockMvc.perform(get("/api/tickets/{id}", ticketId))
+        mockMvc.perform(get("/api/admin/tickets/{id}", ticketId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(ticketId))
             .andExpect(jsonPath("$.title").value("Printer issue"))
@@ -445,7 +447,7 @@ class TicketControllerIntegrationTest {
 
     @Test
     void getMissingTicketReturns404() throws Exception {
-        mockMvc.perform(get("/api/tickets/{id}", 9999))
+        mockMvc.perform(get("/api/admin/tickets/{id}", 9999))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.status").value(404))
             .andExpect(jsonPath("$.message").value("Ticket with id 9999 was not found."));
@@ -458,7 +460,7 @@ class TicketControllerIntegrationTest {
         String originalPredictedCategory = original.getPredictedCategory();
         double originalConfidence = original.getConfidence();
 
-        mockMvc.perform(put("/api/tickets/{id}", ticketId)
+        mockMvc.perform(put("/api/admin/tickets/{id}", ticketId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -486,7 +488,7 @@ class TicketControllerIntegrationTest {
     void updatingFinalCategoryToPredictedCategoryKeepsAiAcceptedTrue() throws Exception {
         Long ticketId = createSampleTicket();
 
-        mockMvc.perform(put("/api/tickets/{id}", ticketId)
+        mockMvc.perform(put("/api/admin/tickets/{id}", ticketId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -503,7 +505,7 @@ class TicketControllerIntegrationTest {
         Long ticketId = createSampleTicket();
         Ticket beforeUpdate = ticketRepository.findById(ticketId).orElseThrow();
 
-        mockMvc.perform(put("/api/tickets/{id}", ticketId)
+        mockMvc.perform(put("/api/admin/tickets/{id}", ticketId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -523,7 +525,7 @@ class TicketControllerIntegrationTest {
         Long ticketId = createSampleTicket();
         Ticket beforeUpdate = ticketRepository.findById(ticketId).orElseThrow();
 
-        mockMvc.perform(put("/api/tickets/{id}", ticketId)
+        mockMvc.perform(put("/api/admin/tickets/{id}", ticketId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -542,7 +544,7 @@ class TicketControllerIntegrationTest {
     void emptyUpdateReturns400() throws Exception {
         Long ticketId = createSampleTicket();
 
-        mockMvc.perform(put("/api/tickets/{id}", ticketId)
+        mockMvc.perform(put("/api/admin/tickets/{id}", ticketId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
             .andExpect(status().isBadRequest())

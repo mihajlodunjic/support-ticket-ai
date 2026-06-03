@@ -12,3 +12,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+app:
+  security:
+    jwt-secret: ${APP_SECURITY_JWT_SECRET}
+    token-validity-seconds: ${APP_SECURITY_TOKEN_VALIDITY_SECONDS:3600}
+    admin:
+      name: ${APP_SECURITY_ADMIN_NAME:}
+      email: ${APP_SECURITY_ADMIN_EMAIL:}
+      password: ${APP_SECURITY_ADMIN_PASSWORD:}

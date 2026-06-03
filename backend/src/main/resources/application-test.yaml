@@ -15,3 +15,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+app:
+  security:
+    jwt-secret: test-jwt-secret-key-for-phase-nine-tests-123456
+    token-validity-seconds: 3600
+    admin:
+      name: Test Admin
+      email: admin@example.com
+      password: AdminPass123!
