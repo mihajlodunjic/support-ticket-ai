@@ -33,9 +33,10 @@ public class TicketController {
 
     @GetMapping
     public PageResponse<TicketListItemResponse> getTickets(
+        @Valid TicketFilterRequest filter,
         @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ticketService.getTickets(pageable);
+        return ticketService.getTickets(filter, pageable);
     }
 
     @GetMapping("/{id}")

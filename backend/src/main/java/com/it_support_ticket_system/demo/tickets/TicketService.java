@@ -75,8 +75,8 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<TicketListItemResponse> getTickets(Pageable pageable) {
-        Page<TicketListItemResponse> page = ticketRepository.findAll(pageable)
+    public PageResponse<TicketListItemResponse> getTickets(TicketFilterRequest filter, Pageable pageable) {
+        Page<TicketListItemResponse> page = ticketRepository.findAll(TicketSpecifications.withFilters(filter), pageable)
             .map(ticketMapper::toListItemResponse);
         return PageResponse.from(page);
     }

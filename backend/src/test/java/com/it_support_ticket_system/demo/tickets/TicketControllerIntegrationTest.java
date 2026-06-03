@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import com.it_support_ticket_system.demo.ai.AiPredictionResult;
 import com.it_support_ticket_system.demo.ai.AiPredictionService;
 import com.it_support_ticket_system.demo.common.AiServiceUnavailableException;
+import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -156,6 +157,282 @@ class TicketControllerIntegrationTest {
     }
 
     @Test
+    void listTicketsSupportsPaginationAndDefaultSortByNewestFirst() throws Exception {
+        Long olderTicketId = createSampleTicket();
+        sleepForTimestampOrdering();
+        Long newerTicketId = createCustomTicket(
+            "Newest issue",
+            "Latest created ticket.",
+            "newest@example.com",
+            "Hardware",
+            "Hardware",
+            0.90,
+            TicketPriority.HIGH,
+            TicketStatus.IN_PROGRESS,
+            true,
+            false
+        );
+
+        mockMvc.perform(get("/api/tickets").param("page", "0").param("size", "1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].id").value(newerTicketId))
+            .andExpect(jsonPath("$.page").value(0))
+            .andExpect(jsonPath("$.size").value(1))
+            .andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.totalPages").value(2))
+            .andExpect(jsonPath("$.first").value(true))
+            .andExpect(jsonPath("$.last").value(false));
+
+        org.assertj.core.api.Assertions.assertThat(newerTicketId).isGreaterThan(olderTicketId);
+    }
+
+    @Test
+    void filterByStatusReturnsMatchingTickets() throws Exception {
+        createCustomTicket(
+            "New issue",
+            "Should stay new.",
+            "new@example.com",
+            "Hardware",
+            "Hardware",
+            0.80,
+            TicketPriority.LOW,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+        createCustomTicket(
+            "Resolved issue",
+            "Already solved.",
+            "resolved@example.com",
+            "Access",
+            "Access",
+            0.92,
+            TicketPriority.MEDIUM,
+            TicketStatus.RESOLVED,
+            true,
+            false
+        );
+
+        mockMvc.perform(get("/api/tickets").param("status", "RESOLVED"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].status").value("RESOLVED"))
+            .andExpect(jsonPath("$.content[0].title").value("Resolved issue"));
+    }
+
+    @Test
+    void filterByPriorityReturnsMatchingTickets() throws Exception {
+        createCustomTicket(
+            "Low issue",
+            "Low priority item.",
+            "low@example.com",
+            "Hardware",
+            "Hardware",
+            0.35,
+            TicketPriority.LOW,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+        createCustomTicket(
+            "High issue",
+            "High priority item.",
+            "high@example.com",
+            "Access",
+            "Access",
+            0.95,
+            TicketPriority.HIGH,
+            TicketStatus.IN_PROGRESS,
+            true,
+            false
+        );
+
+        mockMvc.perform(get("/api/tickets").param("priority", "HIGH"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].priority").value("HIGH"))
+            .andExpect(jsonPath("$.content[0].title").value("High issue"));
+    }
+
+    @Test
+    void filterByPredictedCategoryReturnsMatchingTickets() throws Exception {
+        createCustomTicket(
+            "Hardware issue",
+            "Hardware related ticket.",
+            "hardware@example.com",
+            "Hardware",
+            "Hardware",
+            0.70,
+            TicketPriority.LOW,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+        createCustomTicket(
+            "Access issue",
+            "Access related ticket.",
+            "access@example.com",
+            "Access",
+            "Access",
+            0.91,
+            TicketPriority.MEDIUM,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+
+        mockMvc.perform(get("/api/tickets").param("predictedCategory", "access"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].predictedCategory").value("Access"))
+            .andExpect(jsonPath("$.content[0].title").value("Access issue"));
+    }
+
+    @Test
+    void filterByFinalCategoryReturnsMatchingTickets() throws Exception {
+        createCustomTicket(
+            "Hardware issue",
+            "Hardware related ticket.",
+            "hardware@example.com",
+            "Hardware",
+            "Administrative rights",
+            0.70,
+            TicketPriority.LOW,
+            TicketStatus.NEW,
+            false,
+            false
+        );
+        createCustomTicket(
+            "Access issue",
+            "Access related ticket.",
+            "access@example.com",
+            "Access",
+            "Access",
+            0.91,
+            TicketPriority.MEDIUM,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+
+        mockMvc.perform(get("/api/tickets").param("finalCategory", "administrative rights"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].finalCategory").value("Administrative rights"))
+            .andExpect(jsonPath("$.content[0].title").value("Hardware issue"));
+    }
+
+    @Test
+    void filterByUserEmailReturnsMatchingTickets() throws Exception {
+        createCustomTicket(
+            "Hardware issue",
+            "Hardware related ticket.",
+            "hardware.team@example.com",
+            "Hardware",
+            "Hardware",
+            0.70,
+            TicketPriority.LOW,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+        createCustomTicket(
+            "Access issue",
+            "Access related ticket.",
+            "access.team@example.com",
+            "Access",
+            "Access",
+            0.91,
+            TicketPriority.MEDIUM,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+
+        mockMvc.perform(get("/api/tickets").param("userEmail", "access.team"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].userEmail").value("access.team@example.com"))
+            .andExpect(jsonPath("$.content[0].title").value("Access issue"));
+    }
+
+    @Test
+    void filterByConfidenceRangeReturnsMatchingTickets() throws Exception {
+        createCustomTicket(
+            "Low confidence",
+            "Low confidence ticket.",
+            "low@example.com",
+            "Hardware",
+            "Hardware",
+            0.25,
+            TicketPriority.LOW,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+        createCustomTicket(
+            "High confidence",
+            "High confidence ticket.",
+            "high@example.com",
+            "Access",
+            "Access",
+            0.91,
+            TicketPriority.MEDIUM,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+
+        mockMvc.perform(get("/api/tickets").param("minConfidence", "0.8").param("maxConfidence", "1.0"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].confidence").value(0.91))
+            .andExpect(jsonPath("$.content[0].title").value("High confidence"));
+    }
+
+    @Test
+    void filterByCreatedDateRangeReturnsMatchingTickets() throws Exception {
+        Long olderTicketId = createCustomTicket(
+            "Older issue",
+            "Older created ticket.",
+            "older@example.com",
+            "Hardware",
+            "Hardware",
+            0.40,
+            TicketPriority.LOW,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+        Instant olderCreatedAt = ticketRepository.findById(olderTicketId).orElseThrow().getCreatedAt();
+        sleepForTimestampOrdering();
+        Long newerTicketId = createCustomTicket(
+            "Newer issue",
+            "Newer created ticket.",
+            "newer@example.com",
+            "Access",
+            "Access",
+            0.90,
+            TicketPriority.MEDIUM,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+        Instant newerCreatedAt = ticketRepository.findById(newerTicketId).orElseThrow().getCreatedAt();
+
+        mockMvc.perform(get("/api/tickets")
+                .param("createdFrom", newerCreatedAt.minusMillis(1).toString())
+                .param("createdTo", newerCreatedAt.plusMillis(1).toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].id").value(newerTicketId))
+            .andExpect(jsonPath("$.content[0].title").value("Newer issue"));
+
+        org.assertj.core.api.Assertions.assertThat(newerCreatedAt).isAfter(olderCreatedAt);
+    }
+
+    @Test
     void getTicketByIdReturnsTicket() throws Exception {
         Long ticketId = createSampleTicket();
 
@@ -177,6 +454,9 @@ class TicketControllerIntegrationTest {
     @Test
     void updateTicketChangesAllowedFieldsOnly() throws Exception {
         Long ticketId = createSampleTicket();
+        Ticket original = ticketRepository.findById(ticketId).orElseThrow();
+        String originalPredictedCategory = original.getPredictedCategory();
+        double originalConfidence = original.getConfidence();
 
         mockMvc.perform(put("/api/tickets/{id}", ticketId)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -196,6 +476,66 @@ class TicketControllerIntegrationTest {
             .andExpect(jsonPath("$.priority").value("HIGH"))
             .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
             .andExpect(jsonPath("$.aiAccepted").value(false));
+
+        Ticket updated = ticketRepository.findById(ticketId).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(updated.getPredictedCategory()).isEqualTo(originalPredictedCategory);
+        org.assertj.core.api.Assertions.assertThat(updated.getConfidence()).isEqualTo(originalConfidence);
+    }
+
+    @Test
+    void updatingFinalCategoryToPredictedCategoryKeepsAiAcceptedTrue() throws Exception {
+        Long ticketId = createSampleTicket();
+
+        mockMvc.perform(put("/api/tickets/{id}", ticketId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "finalCategory": "Miscellaneous"
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.finalCategory").value("Miscellaneous"))
+            .andExpect(jsonPath("$.aiAccepted").value(true));
+    }
+
+    @Test
+    void updatingStatusOnlyDoesNotChangePredictedCategory() throws Exception {
+        Long ticketId = createSampleTicket();
+        Ticket beforeUpdate = ticketRepository.findById(ticketId).orElseThrow();
+
+        mockMvc.perform(put("/api/tickets/{id}", ticketId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "status": "RESOLVED"
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("RESOLVED"))
+            .andExpect(jsonPath("$.predictedCategory").value("Miscellaneous"));
+
+        Ticket afterUpdate = ticketRepository.findById(ticketId).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(afterUpdate.getPredictedCategory()).isEqualTo(beforeUpdate.getPredictedCategory());
+    }
+
+    @Test
+    void updatingPriorityOnlyDoesNotChangeConfidence() throws Exception {
+        Long ticketId = createSampleTicket();
+        Ticket beforeUpdate = ticketRepository.findById(ticketId).orElseThrow();
+
+        mockMvc.perform(put("/api/tickets/{id}", ticketId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "priority": "HIGH"
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.priority").value("HIGH"))
+            .andExpect(jsonPath("$.confidence").value(0.0));
+
+        Ticket afterUpdate = ticketRepository.findById(ticketId).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(afterUpdate.getConfidence()).isEqualTo(beforeUpdate.getConfidence());
     }
 
     @Test
@@ -211,17 +551,47 @@ class TicketControllerIntegrationTest {
     }
 
     private Long createSampleTicket() {
+        return createCustomTicket(
+            "Printer issue",
+            "Office printer stopped working.",
+            "printer@example.com",
+            "Miscellaneous",
+            "Miscellaneous",
+            0.0,
+            TicketPriority.LOW,
+            TicketStatus.NEW,
+            true,
+            false
+        );
+    }
+
+    private Long createCustomTicket(
+        String title,
+        String description,
+        String userEmail,
+        String predictedCategory,
+        String finalCategory,
+        double confidence,
+        TicketPriority priority,
+        TicketStatus status,
+        boolean aiAccepted,
+        boolean aiFailed
+    ) {
         Ticket ticket = new Ticket();
-        ticket.setTitle("Printer issue");
-        ticket.setDescription("Office printer stopped working.");
-        ticket.setUserEmail("printer@example.com");
-        ticket.setPredictedCategory("Miscellaneous");
-        ticket.setConfidence(0.0);
-        ticket.setFinalCategory("Miscellaneous");
-        ticket.setPriority(TicketPriority.LOW);
-        ticket.setStatus(TicketStatus.NEW);
-        ticket.setAiAccepted(true);
-        ticket.setAiFailed(false);
+        ticket.setTitle(title);
+        ticket.setDescription(description);
+        ticket.setUserEmail(userEmail);
+        ticket.setPredictedCategory(predictedCategory);
+        ticket.setConfidence(confidence);
+        ticket.setFinalCategory(finalCategory);
+        ticket.setPriority(priority);
+        ticket.setStatus(status);
+        ticket.setAiAccepted(aiAccepted);
+        ticket.setAiFailed(aiFailed);
         return ticketRepository.save(ticket).getId();
+    }
+
+    private void sleepForTimestampOrdering() throws InterruptedException {
+        Thread.sleep(15);
     }
 }
