@@ -5,12 +5,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.it_support_ticket_system.demo.ai.AiPredictionResult;
+import com.it_support_ticket_system.demo.ai.AiPredictionService;
+import com.it_support_ticket_system.demo.common.AiServiceUnavailableException;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,13 +35,29 @@ class TicketControllerIntegrationTest {
     @Autowired
     private TicketRepository ticketRepository;
 
+    @Autowired
+    private TicketPredictionRepository ticketPredictionRepository;
+
+    @MockBean
+    private AiPredictionService aiPredictionService;
+
     @BeforeEach
     void cleanUp() {
         ticketRepository.deleteAll();
+        reset(aiPredictionService);
     }
 
     @Test
     void createTicketWithValidRequest() throws Exception {
+        when(aiPredictionService.predict(anyString())).thenReturn(AiPredictionResult.success(
+            "Access",
+            0.91,
+            List.of(
+                new AiPredictionResult.TopPrediction("Access", 0.91),
+                new AiPredictionResult.TopPrediction("Administrative rights", 0.07)
+            )
+        ));
+
         mockMvc.perform(post("/api/tickets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -45,15 +70,61 @@ class TicketControllerIntegrationTest {
                     """))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.title").value("Login problem"))
+            .andExpect(jsonPath("$.predictedCategory").value("Access"))
+            .andExpect(jsonPath("$.confidence").value(0.91))
+            .andExpect(jsonPath("$.finalCategory").value("Access"))
+            .andExpect(jsonPath("$.priority").value("MEDIUM"))
+            .andExpect(jsonPath("$.status").value("NEW"))
+            .andExpect(jsonPath("$.aiAccepted").value(true))
+            .andExpect(jsonPath("$.aiFailed").value(false))
+            .andExpect(jsonPath("$.topPredictions").isArray())
+            .andExpect(jsonPath("$.topPredictions.length()").value(2))
+            .andExpect(jsonPath("$.topPredictions[0].category").value("Access"))
+            .andExpect(jsonPath("$.topPredictions[0].probability").value(0.91))
+            .andExpect(jsonPath("$.topPredictions[0].rank").value(1))
+            .andExpect(jsonPath("$.topPredictions[1].category").value("Administrative rights"))
+            .andExpect(jsonPath("$.topPredictions[1].rank").value(2));
+
+        Ticket storedTicket = ticketRepository.findAll().getFirst();
+        verify(aiPredictionService).predict("Login problem" + System.lineSeparator() + "I cannot access my account after password reset.");
+        org.assertj.core.api.Assertions.assertThat(storedTicket.getPredictedCategory()).isEqualTo("Access");
+        org.assertj.core.api.Assertions.assertThat(storedTicket.getPriority()).isEqualTo(TicketPriority.MEDIUM);
+        org.assertj.core.api.Assertions.assertThat(ticketPredictionRepository.findByTicketIdOrderByRankAsc(storedTicket.getId()))
+            .hasSize(2);
+    }
+
+    @Test
+    void createTicketFallsBackWhenAiIsUnavailable() throws Exception {
+        when(aiPredictionService.predict(anyString())).thenThrow(
+            new AiServiceUnavailableException("AI prediction service is unavailable.")
+        );
+
+        mockMvc.perform(post("/api/tickets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "title": "Printer setup",
+                      "description": "I need help adding a new printer to the office.",
+                      "userEmail": "user@example.com"
+                    }
+                    """))
+            .andExpect(status().isCreated())
             .andExpect(jsonPath("$.predictedCategory").value("Miscellaneous"))
             .andExpect(jsonPath("$.confidence").value(0.0))
             .andExpect(jsonPath("$.finalCategory").value("Miscellaneous"))
             .andExpect(jsonPath("$.priority").value("LOW"))
             .andExpect(jsonPath("$.status").value("NEW"))
-            .andExpect(jsonPath("$.aiAccepted").value(true))
-            .andExpect(jsonPath("$.aiFailed").value(false))
+            .andExpect(jsonPath("$.aiAccepted").value(false))
+            .andExpect(jsonPath("$.aiFailed").value(true))
+            .andExpect(jsonPath("$.aiErrorMessage").value("AI prediction service is unavailable."))
             .andExpect(jsonPath("$.topPredictions").isArray())
             .andExpect(jsonPath("$.topPredictions").isEmpty());
+
+        Ticket storedTicket = ticketRepository.findAll().getFirst();
+        org.assertj.core.api.Assertions.assertThat(storedTicket.isAiFailed()).isTrue();
+        org.assertj.core.api.Assertions.assertThat(storedTicket.getPredictedCategory()).isEqualTo("Miscellaneous");
+        org.assertj.core.api.Assertions.assertThat(ticketPredictionRepository.findByTicketIdOrderByRankAsc(storedTicket.getId()))
+            .isEmpty();
     }
 
     @Test
