@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: helpdesk
-      POSTGRES_USER: helpdesk
-      POSTGRES_PASSWORD: helpdesk
+      POSTGRES_DB: ${POSTGRES_DB:-helpdesk}
+      POSTGRES_USER: ${POSTGRES_USER:-helpdesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U helpdesk -d helpdesk"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -18,14 +18,26 @@ services:
   backend:
     build:
       context: .
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: local
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/helpdesk
-      SPRING_DATASOURCE_USERNAME: helpdesk
-      SPRING_DATASOURCE_PASSWORD: helpdesk
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-helpdesk}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-helpdesk}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_SECURITY_JWT_SECRET: ${APP_SECURITY_JWT_SECRET}
+      APP_SECURITY_TOKEN_VALIDITY_SECONDS: ${APP_SECURITY_TOKEN_VALIDITY_SECONDS:-3600}
+      APP_SECURITY_ADMIN_NAME: ${APP_SECURITY_ADMIN_NAME:-}
+      APP_SECURITY_ADMIN_EMAIL: ${APP_SECURITY_ADMIN_EMAIL:-}
+      APP_SECURITY_ADMIN_PASSWORD: ${APP_SECURITY_ADMIN_PASSWORD:-}
+      APP_AI_BASE_URL: ${APP_AI_BASE_URL:-http://host.docker.internal:8000}
+      APP_AI_PREDICT_PATH: ${APP_AI_PREDICT_PATH:-/predict}
+      APP_AI_TIMEOUT_SECONDS: ${APP_AI_TIMEOUT_SECONDS:-5}
+      APP_AI_FALLBACK_CATEGORY: ${APP_AI_FALLBACK_CATEGORY:-Miscellaneous}
+      APP_AI_TOP_PREDICTIONS_LIMIT: ${APP_AI_TOP_PREDICTIONS_LIMIT:-3}
     ports:
       - "8080:8080"
 

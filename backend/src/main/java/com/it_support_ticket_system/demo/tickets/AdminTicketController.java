@@ -1,6 +1,7 @@
 package com.it_support_ticket_system.demo.tickets;
 
 import com.it_support_ticket_system.demo.common.PageResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/admin/tickets")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminTicketController {
 
     private final TicketService ticketService;
