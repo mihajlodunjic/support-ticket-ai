@@ -4,6 +4,7 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 import tensorflow as tf
 
@@ -14,7 +15,11 @@ MODEL_PATH = MODELS_DIR / "cnn_text_model.keras"
 LABEL_MAPPING_PATH = MODELS_DIR / "label_mapping.json"
 
 
-def clean_text(text):
+class PredictorInputError(ValueError):
+    pass
+
+
+def clean_text(text: str) -> str:
     text = str(text).lower()
     text = re.sub(r"https?://\S+|www\.\S+", " ", text)
     text = re.sub(r"\b[\w\.-]+@[\w\.-]+\.\w+\b", " ", text)
@@ -39,7 +44,7 @@ def load_label_mapping() -> dict:
         return json.load(file)
 
 
-def _resolve_id_to_label(label_mapping: dict) -> dict[str, str]:
+def resolve_id_to_label(label_mapping: dict) -> dict[str, str]:
     if "id_to_label" in label_mapping and isinstance(label_mapping["id_to_label"], dict):
         return {str(key): str(value) for key, value in label_mapping["id_to_label"].items()}
 
@@ -52,29 +57,55 @@ def _resolve_id_to_label(label_mapping: dict) -> dict[str, str]:
     raise ValueError("Unsupported label_mapping.json structure.")
 
 
-def predict_probabilities(text: str) -> list[dict]:
+def preload_resources() -> None:
+    load_ticket_model()
+    resolve_id_to_label(load_label_mapping())
+
+
+def predict_probabilities(text: str) -> list[dict[str, Any]]:
+    if not str(text).strip():
+        raise PredictorInputError("Input text must not be empty or whitespace only.")
+
     cleaned_text = clean_text(text)
     if not cleaned_text:
-        raise ValueError("Input text is empty after cleaning.")
+        raise PredictorInputError("Input text is empty after cleaning.")
 
     model = load_ticket_model()
     label_mapping = load_label_mapping()
-    id_to_label = _resolve_id_to_label(label_mapping)
+    id_to_label = resolve_id_to_label(label_mapping)
 
     input_tensor = tf.constant([cleaned_text], dtype=tf.string)
     probabilities = model.predict(input_tensor, verbose=0)[0]
 
     predictions = [
         {
-            "category": id_to_label[str(index)],
+            "category": id_to_label.get(str(index)),
             "probability": float(probability),
         }
         for index, probability in enumerate(probabilities)
     ]
 
+    if any(item["category"] is None for item in predictions):
+        raise ValueError("Label mapping does not contain categories for all model output indexes.")
+
     return sorted(predictions, key=lambda item: item["probability"], reverse=True)
+
+
+def predict_ticket(text: str, top_k: int = 3) -> dict[str, Any]:
+    if top_k < 1:
+        raise ValueError("top_k must be greater than zero.")
+
+    predictions = predict_probabilities(text)
+    top_predictions = predictions[:top_k]
+    best_prediction = top_predictions[0]
+
+    return {
+        "predictedCategory": best_prediction["category"],
+        "confidence": best_prediction["probability"],
+        "topPredictions": top_predictions,
+    }
 
 
 if __name__ == "__main__":
     sample_text = "I cannot enter my profile after password reset."
-    print(json.dumps(predict_probabilities(sample_text), ensure_ascii=False, indent=2))
+    print(json.dumps(predict_ticket(sample_text), ensure_ascii=False, indent=2))
