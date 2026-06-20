@@ -39,7 +39,7 @@ services:
       APP_AI_FALLBACK_CATEGORY: ${APP_AI_FALLBACK_CATEGORY:-Miscellaneous}
       APP_AI_TOP_PREDICTIONS_LIMIT: ${APP_AI_TOP_PREDICTIONS_LIMIT:-3}
     ports:
-      - "8080:8080"
+      - "10000:10000"
 
 volumes:
   postgres_data:
