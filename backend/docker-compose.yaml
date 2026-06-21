@@ -24,6 +24,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      PORT: 10000
       SPRING_PROFILES_ACTIVE: local
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-helpdesk}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-helpdesk}
