@@ -96,7 +96,6 @@ export function CreateTicketPage() {
                 name="title"
                 value={form.title}
                 onChange={handleChange}
-                placeholder="VPN is not working"
                 disabled={submitting}
               />
               {validationErrors.title && <span className="field-error">{validationErrors.title}</span>}
@@ -109,7 +108,6 @@ export function CreateTicketPage() {
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                placeholder="Describe the issue in enough detail for support."
                 rows={8}
                 disabled={submitting}
               />
@@ -124,7 +122,6 @@ export function CreateTicketPage() {
                 type="email"
                 value={form.userEmail}
                 onChange={handleChange}
-                placeholder="user@example.com"
                 disabled={submitting}
               />
               {validationErrors.userEmail && <span className="field-error">{validationErrors.userEmail}</span>}
@@ -137,7 +134,6 @@ export function CreateTicketPage() {
                 name="notes"
                 value={form.notes}
                 onChange={handleChange}
-                placeholder="Optional business context or extra notes."
                 rows={4}
                 disabled={submitting}
               />

@@ -52,7 +52,6 @@ export function PredictTestPage() {
                 value={text}
                 onChange={(event) => setText(event.target.value)}
                 rows={10}
-                placeholder="The printer is jammed and users cannot print."
                 disabled={loading}
               />
             </div>

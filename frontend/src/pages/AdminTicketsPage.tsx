@@ -167,7 +167,6 @@ export function AdminTicketsPage() {
               name="userEmail"
               value={filters.userEmail}
               onChange={handleFilterChange}
-              placeholder="Search by email fragment"
             />
           </div>
 
@@ -204,7 +203,6 @@ export function AdminTicketsPage() {
               step="0.01"
               value={filters.minConfidence}
               onChange={handleFilterChange}
-              placeholder="0.00"
             />
           </div>
 
@@ -219,7 +217,6 @@ export function AdminTicketsPage() {
               step="0.01"
               value={filters.maxConfidence}
               onChange={handleFilterChange}
-              placeholder="1.00"
             />
           </div>
 
