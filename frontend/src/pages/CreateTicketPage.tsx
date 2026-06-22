@@ -80,9 +80,9 @@ export function CreateTicketPage() {
     <div className="page-stack">
       <section className="page-header">
         <div>
-          <span className="section-kicker">Public route</span>
+          <span className="section-kicker">Support intake</span>
           <h1>Create a support ticket</h1>
-          <p>Tickets are submitted to `POST /api/tickets`, which already includes AI prediction and fallback handling.</p>
+          <p>Submit a new request. The system automatically categorizes the ticket and assigns the appropriate priority using AI.</p>
         </div>
       </section>
 

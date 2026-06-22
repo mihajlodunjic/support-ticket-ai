@@ -66,7 +66,7 @@ export function Navbar() {
               </button>
             </>
           ) : (
-            <span className="topbar__hint">Admin routes require a JWT token.</span>
+            <span className="topbar__hint">Admin access requires signing in.</span>
           )}
         </div>
       </div>

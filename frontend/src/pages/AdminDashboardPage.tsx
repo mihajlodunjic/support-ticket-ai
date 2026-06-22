@@ -81,7 +81,7 @@ export function AdminDashboardPage() {
         <div>
           <span className="section-kicker">Admin dashboard</span>
           <h1>Statistics overview</h1>
-          <p>Data comes from `GET /api/admin/statistics` with the exact backend response contract.</p>
+          <p>Dashboard overview of ticket activity and AI classification results.</p>
         </div>
         <Link to="/admin/tickets" className="button button--primary">
           Open ticket queue

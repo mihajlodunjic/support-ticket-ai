@@ -62,7 +62,7 @@ export function RegisterPage() {
       <section className="auth-card">
         <span className="section-kicker">Authentication</span>
         <h1>Create an account</h1>
-        <p className="muted-text">`POST /api/auth/register` creates a user account. It does not log you in automatically.</p>
+        <p className="muted-text">Create an account, then sign in to access the admin area.</p>
 
         {error ? <ErrorMessage error={error} /> : null}
 

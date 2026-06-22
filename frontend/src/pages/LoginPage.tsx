@@ -63,7 +63,7 @@ export function LoginPage() {
       <section className="auth-card">
         <span className="section-kicker">Authentication</span>
         <h1>Admin login</h1>
-        <p className="muted-text">Credentials are sent to `POST /api/auth/login`, and the returned JWT is stored in local storage.</p>
+        <p className="muted-text">Sign in to access your administrative dashboard and manage tickets.</p>
 
         {error ? <ErrorMessage error={error} /> : null}
 

@@ -37,7 +37,7 @@ export function PredictTestPage() {
         <div>
           <span className="section-kicker">Prediction sandbox</span>
           <h1>Direct AI prediction test</h1>
-          <p>This page calls `POST /api/predict`. Unlike ticket creation, this endpoint does not use the ticket fallback flow.</p>
+          <p>Enter a support request description to preview the suggested category directly using AI prediction.</p>
         </div>
       </section>
 

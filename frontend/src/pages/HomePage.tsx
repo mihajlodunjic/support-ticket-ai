@@ -73,7 +73,7 @@ export function HomePage() {
 
           <div className="info-panel">
             <h2>Backend health</h2>
-            {checkingHealth && <p className="muted-text">Checking `GET /api/health`...</p>}
+            {checkingHealth && <p className="muted-text">Checking service status...</p>}
             {!checkingHealth && health && (
               <div className="health-chip health-chip--ok">
                 <span>{health.status}</span>
@@ -98,11 +98,11 @@ export function HomePage() {
         </article>
         <article className="card">
           <h2>JWT-protected admin area</h2>
-          <p>Login stores a JWT in local storage and sends it as a Bearer token for `/api/admin/**` endpoints.</p>
+          <p>Secure authentication for administrators to review and update tickets, view statistics, and manage the workflow.</p>
         </article>
         <article className="card">
           <h2>Direct AI probe</h2>
-          <p>Use the predict test page for quick manual checks against `POST /api/predict` when the AI service is up.</p>
+          <p>Test the AI classification system by directly submitting text requests and inspecting classification results.</p>
         </article>
       </section>
     </div>
